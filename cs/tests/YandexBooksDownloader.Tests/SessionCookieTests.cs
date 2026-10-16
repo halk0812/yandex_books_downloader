@@ -1,41 +1,47 @@
-using YandexBooksDownloader.Core;
+﻿using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-[DoNotParallelize]
-public sealed class SessionCookieTests
+public sealed class SessionCookieTests : IDisposable
 {
-    [TestCleanup]
-    public void Cleanup() => Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, null);
+    public void Dispose() => Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, value: null);
 
-    [TestMethod]
+    [Fact]
     public void Resolve_PrefersEnvironmentVariable()
     {
+        // Arrange
         Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, "  cookie-from-env  ");
 
+        // Act
         var cookie = SessionCookie.Resolve(() => "prompted");
 
-        Assert.AreEqual("cookie-from-env", cookie);
+        // Assert
+        cookie.Should().Be("cookie-from-env");
     }
 
-    [TestMethod]
+    [Fact]
     public void Resolve_FallsBackToPromptWhenEnvMissing()
     {
-        Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, null);
+        // Arrange
+        Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, value: null);
 
+        // Act
         var cookie = SessionCookie.Resolve(() => "cookie-from-prompt");
 
-        Assert.AreEqual("cookie-from-prompt", cookie);
+        // Assert
+        cookie.Should().Be("cookie-from-prompt");
     }
 
-    [TestMethod]
+    [Fact]
     public void Resolve_ReturnsPromptResultWhenEnvIsBlank()
     {
+        // Arrange
         Environment.SetEnvironmentVariable(SessionCookie.EnvironmentVariable, "   ");
 
+        // Act
         var cookie = SessionCookie.Resolve(() => null);
 
-        Assert.IsNull(cookie);
+        // Assert
+        cookie.Should().BeNull();
     }
 }

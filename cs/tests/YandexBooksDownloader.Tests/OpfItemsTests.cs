@@ -1,13 +1,13 @@
-using YandexBooksDownloader.Core;
+﻿using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-public sealed class OpfItemsTests
+public class OpfItemsTests
 {
-    [TestMethod]
+    [Fact]
     public void GetItemHrefs_ReturnsHrefsInDocumentOrder()
     {
+        // Arrange
         var opf = """
             <?xml version="1.0" encoding="UTF-8"?>
             <package xmlns="http://www.idpf.org/2007/opf" version="2.0">
@@ -20,15 +20,18 @@ public sealed class OpfItemsTests
             </package>
             """;
 
+        // Act
         var hrefs = OpfItems.GetItemHrefs(opf);
-        List<string> expected = ["toc.ncx", "style/style.css", "text/part1.xhtml"];
 
-        CollectionAssert.AreEqual(expected, hrefs.ToList());
+        // Assert
+        List<string> expected = ["toc.ncx", "style/style.css", "text/part1.xhtml"];
+        hrefs.Should().Equal(expected);
     }
 
-    [TestMethod]
+    [Fact]
     public void GetItemHrefs_MatchesItemsInAnyNamespace()
     {
+        // Arrange
         var opf = """
             <opf:package xmlns:opf="http://www.idpf.org/2007/opf">
               <opf:manifest>
@@ -37,7 +40,11 @@ public sealed class OpfItemsTests
             </opf:package>
             """;
 
+        // Act
+        var hrefs = OpfItems.GetItemHrefs(opf);
+
+        // Assert
         List<string> expected = ["text/part1.xhtml"];
-        CollectionAssert.AreEqual(expected, OpfItems.GetItemHrefs(opf).ToList());
+        hrefs.Should().Equal(expected);
     }
 }

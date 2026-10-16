@@ -1,27 +1,29 @@
-using YandexBooksDownloader.Core;
+﻿using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-public sealed class CommandLineOptionsTests
+public class CommandLineOptionsTests
 {
-    [TestMethod]
+    [Fact]
     public void Parse_AppliesDefaults()
     {
+        // Act
         var options = CommandLineOptions.Parse(["--bookid", "KFHDG3bp"]);
 
-        Assert.AreEqual("KFHDG3bp", options.BookId);
-        Assert.AreEqual("out", options.OutDir);
-        Assert.AreEqual("INFO", options.LogLevel);
-        Assert.IsTrue(options.Download);
-        Assert.IsTrue(options.DeleteCss);
-        Assert.IsTrue(options.MakeEpub);
-        Assert.IsTrue(options.DeleteDownloaded);
+        // Assert
+        options.BookId.Should().Be("KFHDG3bp");
+        options.OutDir.Should().Be("out");
+        options.LogLevel.Should().Be("INFO");
+        options.Download.Should().BeTrue();
+        options.DeleteCss.Should().BeTrue();
+        options.MakeEpub.Should().BeTrue();
+        options.DeleteDownloaded.Should().BeTrue();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_SupportsEqualsAndSpaceValueForms()
     {
+        // Act
         var options = CommandLineOptions.Parse(
         [
             "--bookid=KFHDG3bp",
@@ -33,42 +35,63 @@ public sealed class CommandLineOptionsTests
             "--delete_downloaded", "False",
         ]);
 
-        Assert.AreEqual("KFHDG3bp", options.BookId);
-        Assert.AreEqual("out", options.OutDir);
-        Assert.AreEqual("DEBUG", options.LogLevel);
-        Assert.IsFalse(options.Download);
-        Assert.IsFalse(options.DeleteCss);
-        Assert.IsTrue(options.MakeEpub);
-        Assert.IsFalse(options.DeleteDownloaded);
+        // Assert
+        options.BookId.Should().Be("KFHDG3bp");
+        options.OutDir.Should().Be("out");
+        options.LogLevel.Should().Be("DEBUG");
+        options.Download.Should().BeFalse();
+        options.DeleteCss.Should().BeFalse();
+        options.MakeEpub.Should().BeTrue();
+        options.DeleteDownloaded.Should().BeFalse();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_ThrowsWithoutBookId()
     {
-        Assert.Throws<CommandLineParseException>(() => CommandLineOptions.Parse(["--outdir", "out"]));
+        // Act
+        Action act = () => CommandLineOptions.Parse(["--outdir", "out"]);
+
+        // Assert
+        act.Should().Throw<CommandLineParseException>();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_ThrowsOnUnknownOption()
     {
-        Assert.Throws<CommandLineParseException>(() => CommandLineOptions.Parse(["--bookid", "x", "--nope"]));
+        // Act
+        Action act = () => CommandLineOptions.Parse(["--bookid", "x", "--nope"]);
+
+        // Assert
+        act.Should().Throw<CommandLineParseException>();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_ThrowsOnInvalidLogLevel()
     {
-        Assert.Throws<CommandLineParseException>(() => CommandLineOptions.Parse(["--bookid", "x", "--log", "VERBOSE"]));
+        // Act
+        Action act = () => CommandLineOptions.Parse(["--bookid", "x", "--log", "VERBOSE"]);
+
+        // Assert
+        act.Should().Throw<CommandLineParseException>();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_ThrowsOnNonBoolFlagValue()
     {
-        Assert.Throws<CommandLineParseException>(() => CommandLineOptions.Parse(["--bookid", "x", "--download", "yes"]));
+        // Act
+        Action act = () => CommandLineOptions.Parse(["--bookid", "x", "--download", "yes"]);
+
+        // Assert
+        act.Should().Throw<CommandLineParseException>();
     }
 
-    [TestMethod]
+    [Fact]
     public void Parse_ThrowsOnMissingValue()
     {
-        Assert.Throws<CommandLineParseException>(() => CommandLineOptions.Parse(["--bookid"]));
+        // Act
+        Action act = () => CommandLineOptions.Parse(["--bookid"]);
+
+        // Assert
+        act.Should().Throw<CommandLineParseException>();
     }
 }

@@ -1,15 +1,12 @@
-using System.Text;
-using YandexBooksDownloader.Core;
+﻿using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-public sealed class CssCleanerTests
+public sealed class CssCleanerTests : IDisposable
 {
-    private string _dir = string.Empty;
+    private readonly string _dir;
 
-    [TestInitialize]
-    public void Initialize()
+    public CssCleanerTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "css-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(_dir, "OEBPS", "style"));
@@ -18,16 +15,17 @@ public sealed class CssCleanerTests
         File.WriteAllText(Path.Combine(_dir, "OEBPS", "content.opf"), "<package/>");
     }
 
-    [TestCleanup]
-    public void Cleanup() => Directory.Delete(_dir, recursive: true);
+    public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    [TestMethod]
+    [Fact]
     public void ClearAll_EmptiesCssFilesRecursively()
     {
+        // Act
         CssCleaner.ClearAll(_dir);
 
-        Assert.AreEqual(string.Empty, File.ReadAllText(Path.Combine(_dir, "OEBPS", "style", "style.css")));
-        Assert.AreEqual(string.Empty, File.ReadAllText(Path.Combine(_dir, "OEBPS", "style", "STYLE.CSS")));
-        Assert.AreEqual("<package/>", File.ReadAllText(Path.Combine(_dir, "OEBPS", "content.opf")));
+        // Assert
+        File.ReadAllText(Path.Combine(_dir, "OEBPS", "style", "style.css")).Should().BeEmpty();
+        File.ReadAllText(Path.Combine(_dir, "OEBPS", "style", "STYLE.CSS")).Should().BeEmpty();
+        File.ReadAllText(Path.Combine(_dir, "OEBPS", "content.opf")).Should().Be("<package/>");
     }
 }

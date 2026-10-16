@@ -1,5 +1,4 @@
-using System.Net;
-using Microsoft.Extensions.Logging;
+﻿using System.Net;
 using YandexBooksDownloader.Core;
 using YandexBooksDownloader.Web;
 
@@ -66,12 +65,10 @@ app.MapPost("/api/download", async (BookDownloadService downloads, DownloadReque
 
 app.MapGet("/api/epub/{bookId}", (BookDownloadService downloads, string bookId) =>
 {
-    var path = downloads.GetEpubPath(bookId);
+    var path = downloads.FindEpubPath(bookId);
     return path is null
         ? Results.NotFound(new { error = "epub not found, download the book first." })
         : Results.File(path, "application/epub+zip", $"{bookId}.epub");
 });
 
 app.Run();
-
-internal sealed record DownloadRequest(string? BookId);

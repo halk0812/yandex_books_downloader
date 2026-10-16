@@ -1,15 +1,29 @@
-using System.Text;
+﻿using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace YandexBooksDownloader.Core;
 
+/// <summary>
+/// Скачивает книгу с books.yandex.ru и сохраняет её как распакованную структуру epub.
+/// </summary>
 public sealed class BookDownloader
 {
+    /// <summary>
+    /// Домен Яндекс Книг.
+    /// </summary>
     public const string BooksDomain = "books.yandex.ru";
 
     private readonly Downloader _downloader;
     private readonly ILogger _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BookDownloader"/> class.
+    /// </summary>
+    /// <param name="bookId">Идентификатор книги.</param>
+    /// <param name="downloader">Загрузчик, сохраняющий файлы книги.</param>
+    /// <param name="logger">Логгер.</param>
+    /// <param name="secret">Необязательный секрет расшифровки, скачивается если не задан.</param>
     public BookDownloader(string bookId, Downloader downloader, ILogger logger, string? secret = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookId);
@@ -22,15 +36,26 @@ public sealed class BookDownloader
         Secret = secret;
     }
 
+    /// <summary>
+    /// Идентификатор книги.
+    /// </summary>
     public string BookId { get; }
 
+    /// <summary>
+    /// Секрет расшифровки, устанавливается после скачивания секрета.
+    /// </summary>
     public string? Secret { get; private set; }
 
-    public async Task<string> DownloadSecretAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Скачивает секрет расшифровки.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Скачанный секрет.</returns>
+    public async Task<string> DownloadSecretAsync(CancellationToken cancellationToken)
     {
         var url = $"https://{BooksDomain}/reader/p/api/v5/metadata_secret?lang=ru";
         var json = await _downloader.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-        using var document = System.Text.Json.JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(json);
         if (!document.RootElement.TryGetProperty("secret", out var secretElement))
         {
             throw new InvalidDataException($"Secret is missing in response from '{url}'.");
@@ -41,7 +66,12 @@ public sealed class BookDownloader
         return Secret;
     }
 
-    public async Task DownloadAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Скачивает метаданные книги и все файлы книги.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Задача, представляющая асинхронную операцию.</returns>
+    public async Task DownloadAsync(CancellationToken cancellationToken)
     {
         var secret = Secret ?? await DownloadSecretAsync(cancellationToken).ConfigureAwait(false);
         var metadataUrl = $"https://{BooksDomain}/p/api/v5/books/{BookId}/metadata/v4";
@@ -49,6 +79,21 @@ public sealed class BookDownloader
         var metadata = BookMetadata.FromJson(metadataJson, secret);
         await ProcessMetadataAsync(metadata, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Удаляет каталог скачанной книги.
+    /// </summary>
+    public void DeleteDownloaded() => _downloader.DeleteDownloaded();
+
+    /// <summary>
+    /// Очищает css-файлы скачанной книги.
+    /// </summary>
+    public void ClearCss() => _downloader.ClearCss();
+
+    /// <summary>
+    /// Упаковывает скачанную книгу в epub-файл.
+    /// </summary>
+    public void MakeEpub() => _downloader.MakeEpub();
 
     private async Task ProcessMetadataAsync(BookMetadata metadata, CancellationToken cancellationToken)
     {
@@ -86,10 +131,4 @@ public sealed class BookDownloader
             }
         }
     }
-
-    public void DeleteDownloaded() => _downloader.DeleteDownloaded();
-
-    public void ClearCss() => _downloader.ClearCss();
-
-    public void MakeEpub() => _downloader.MakeEpub();
 }

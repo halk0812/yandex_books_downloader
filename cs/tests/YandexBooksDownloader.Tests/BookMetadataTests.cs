@@ -1,20 +1,20 @@
-using System.Text;
+﻿using System.Text;
 using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-public sealed class BookMetadataTests
+public class BookMetadataTests
 {
     private const string SecretBase64 = "MDEyMzQ1Njc4OWFiY2RlZg==";
 
-    [TestMethod]
+    [Fact]
     public void FromJson_DecryptsArrayValuesAndKeepsScalars()
     {
+        // Arrange
         var opfPlain = Encoding.UTF8.GetBytes("<package>opf</package>");
         var ncxPlain = Encoding.UTF8.GetBytes("<ncx>toc</ncx>");
-        var opfBytes = CryptoTests.EncryptWithIv(SecretBase64, opfPlain);
-        var ncxBytes = CryptoTests.EncryptWithIv(SecretBase64, ncxPlain);
+        var opfBytes = CryptoHelper.EncryptWithIv(SecretBase64, opfPlain);
+        var ncxBytes = CryptoHelper.EncryptWithIv(SecretBase64, ncxPlain);
 
         var json = $$"""
             {
@@ -25,25 +25,36 @@ public sealed class BookMetadataTests
             }
             """;
 
+        // Act
         var metadata = BookMetadata.FromJson(json, SecretBase64);
 
-        CollectionAssert.AreEqual(opfPlain, metadata.GetBytes("opf"));
-        CollectionAssert.AreEqual(ncxPlain, metadata.GetBytes("ncx"));
-        Assert.AreEqual("uuid-123", metadata.GetString("document_uuid"));
-        Assert.AreEqual("4", metadata.GetString("version"));
+        // Assert
+        metadata.GetBytes("opf").Should().Equal(opfPlain);
+        metadata.GetBytes("ncx").Should().Equal(ncxPlain);
+        metadata.GetString("document_uuid").Should().Be("uuid-123");
+        metadata.GetString("version").Should().Be("4");
     }
 
-    [TestMethod]
+    [Fact]
     public void GetBytes_ThrowsForMissingKey()
     {
-        Assert.Throws<KeyNotFoundException>(
-            () => BookMetadata.FromJson("{}", SecretBase64).GetBytes("opf"));
+        // Arrange
+        var metadata = BookMetadata.FromJson("{}", SecretBase64);
+
+        // Act
+        Action act = () => metadata.GetBytes("opf");
+
+        // Assert
+        act.Should().Throw<KeyNotFoundException>();
     }
 
-    [TestMethod]
+    [Fact]
     public void FromJson_ThrowsOnNonByteArrayValues()
     {
-        Assert.Throws<InvalidDataException>(
-            () => BookMetadata.FromJson("""{"opf": [300]}""", SecretBase64));
+        // Act
+        Action act = () => BookMetadata.FromJson("""{"opf": [300]}""", SecretBase64);
+
+        // Assert
+        act.Should().Throw<InvalidDataException>();
     }
 }

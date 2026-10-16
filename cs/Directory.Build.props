@@ -1,0 +1,43 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <NoWarn>$(NoWarn);NU1507;RQ0001;RQ0002</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Skp.StyleCop">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Skp.CodeAnalysis">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="JetBrains.Annotations" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <LocalEditorConfigFileToCopy Include="$(MSBuildThisFileDirectory)\local.editorconfig" />
+  </ItemGroup>
+
+  <Target Name="CopyLocalEditorConfig" BeforeTargets="BeforeBuild">
+    <Message Text="Copying the local.editorconfig file from '@(LocalEditorConfigFileToCopy)' to '$(ProjectDir)'"></Message>
+    <Copy
+      SourceFiles="@(LocalEditorConfigFileToCopy)"
+      DestinationFiles="$(ProjectDir)\.editorconfig"
+      SkipUnchangedFiles="true"
+      UseHardlinksIfPossible="false" />
+  </Target>
+
+</Project>

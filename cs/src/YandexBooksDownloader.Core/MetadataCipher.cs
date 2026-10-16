@@ -1,7 +1,16 @@
-namespace YandexBooksDownloader.Core;
+﻿namespace YandexBooksDownloader.Core;
 
+/// <summary>
+/// Расшифровывает значения метаданных Яндекс Книг.
+/// </summary>
 public static class MetadataCipher
 {
+    /// <summary>
+    /// Расшифровывает значение, зашифрованное AES-CBC с дополнением PKCS7.
+    /// </summary>
+    /// <param name="secretBase64">Секрет расшифровки в Base64.</param>
+    /// <param name="data">Вектор инициализации, за которым следует шифртекст.</param>
+    /// <returns>Расшифрованные байты без дополнения.</returns>
     public static byte[] Decrypt(string secretBase64, ReadOnlySpan<byte> data)
     {
         ArgumentNullException.ThrowIfNull(secretBase64);

@@ -1,11 +1,22 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 
 namespace YandexBooksDownloader.Core;
 
+/// <summary>
+/// Упаковывает каталог скачанной книги в epub-файл.
+/// </summary>
 public static class EpubBuilder
 {
+    /// <summary>
+    /// Mimetype контейнера epub.
+    /// </summary>
     public const string MimeType = "application/epub+zip";
 
+    /// <summary>
+    /// Создаёт epub-файл из исходного каталога, размещая запись mimetype первой и без сжатия.
+    /// </summary>
+    /// <param name="sourceDir">Каталог с распакованным содержимым книги.</param>
+    /// <param name="epubPath">Путь создаваемого epub-файла.</param>
     public static void Create(string sourceDir, string epubPath)
     {
         var top = Path.GetFullPath(sourceDir);

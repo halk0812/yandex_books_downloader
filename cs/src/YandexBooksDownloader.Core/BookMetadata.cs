@@ -1,7 +1,10 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace YandexBooksDownloader.Core;
 
+/// <summary>
+/// Метаданные книги, разобранные из JSON метаданных Яндекс Книг.
+/// </summary>
 public sealed class BookMetadata
 {
     private readonly Dictionary<string, byte[]> _blobs = new(StringComparer.Ordinal);
@@ -11,6 +14,12 @@ public sealed class BookMetadata
     {
     }
 
+    /// <summary>
+    /// Разбирает JSON метаданных и расшифровывает каждое массивное значение указанным секретом.
+    /// </summary>
+    /// <param name="json">JSON метаданных в том виде, как его возвращает API Яндекс Книг.</param>
+    /// <param name="secretBase64">Секрет расшифровки в Base64.</param>
+    /// <returns>Разобранные метаданные.</returns>
     public static BookMetadata FromJson(string json, string secretBase64)
     {
         using var document = JsonDocument.Parse(json);
@@ -32,6 +41,11 @@ public sealed class BookMetadata
         return metadata;
     }
 
+    /// <summary>
+    /// Возвращает расшифрованный блоб по указанному ключу.
+    /// </summary>
+    /// <param name="key">Ключ блоба.</param>
+    /// <returns>Расшифрованные байты блоба.</returns>
     public byte[] GetBytes(string key)
     {
         return _blobs.TryGetValue(key, out var value)
@@ -39,6 +53,11 @@ public sealed class BookMetadata
             : throw new KeyNotFoundException($"Metadata blob '{key}' is missing.");
     }
 
+    /// <summary>
+    /// Возвращает скалярное значение по указанному ключу.
+    /// </summary>
+    /// <param name="key">Ключ значения.</param>
+    /// <returns>Значение в виде строки.</returns>
     public string GetString(string key)
     {
         if (!_values.TryGetValue(key, out var element))

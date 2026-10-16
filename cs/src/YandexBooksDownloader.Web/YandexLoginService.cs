@@ -1,10 +1,15 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Playwright;
 using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Web;
 
+/// <summary>
+/// Получает сессионную cookie Яндекса, открывая интерактивный вход в браузере.
+/// </summary>
+/// <param name="store">Хранилище сессии для сохранения полученной cookie.</param>
+/// <param name="logger">Логгер.</param>
 public sealed class YandexLoginService(SessionStore store, ILogger<YandexLoginService> logger)
 {
     private static readonly string UserDataDir = Path.Combine(
@@ -12,6 +17,11 @@ public sealed class YandexLoginService(SessionStore store, ILogger<YandexLoginSe
         "YandexBooksDownloader",
         "browser-profile");
 
+    /// <summary>
+    /// Открывает браузер, ожидает входа пользователя и получает сессионную cookie.
+    /// </summary>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Полученное значение сессионной cookie.</returns>
     public async Task<string> LoginAsync(CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(UserDataDir);
@@ -51,8 +61,10 @@ public sealed class YandexLoginService(SessionStore store, ILogger<YandexLoginSe
                 out var configured) ? configured : 300;
             var deadline = DateTimeOffset.UtcNow.AddSeconds(timeoutSeconds);
 
-            logger.LogInformation("Browser opened at https://{Domain}. Waiting for the {CookieName} cookie ...",
-                BookDownloader.BooksDomain, SessionCookie.Name);
+            logger.LogInformation(
+                "Browser opened at https://{Domain}. Waiting for the {CookieName} cookie ...",
+                BookDownloader.BooksDomain,
+                SessionCookie.Name);
 
             while (DateTimeOffset.UtcNow < deadline)
             {
@@ -141,5 +153,3 @@ public sealed class YandexLoginService(SessionStore store, ILogger<YandexLoginSe
             "Run 'playwright.ps1 install chromium' manually or set YBD_BROWSER=msedge or YBD_BROWSER=chrome.");
     }
 }
-
-public sealed class LoginTimeoutException(string message) : Exception(message);

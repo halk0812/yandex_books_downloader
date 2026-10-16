@@ -1,17 +1,14 @@
-using System.IO.Compression;
-using System.Text;
+﻿using System.IO.Compression;
 using YandexBooksDownloader.Core;
 
 namespace YandexBooksDownloader.Tests;
 
-[TestClass]
-public sealed class EpubBuilderTests
+public sealed class EpubBuilderTests : IDisposable
 {
-    private string _sourceDir = string.Empty;
-    private string _epubPath = string.Empty;
+    private readonly string _sourceDir;
+    private readonly string _epubPath;
 
-    [TestInitialize]
-    public void Initialize()
+    public EpubBuilderTests()
     {
         _sourceDir = Path.Combine(Path.GetTempPath(), "epub-src-" + Guid.NewGuid().ToString("N"));
         _epubPath = _sourceDir + ".epub";
@@ -25,38 +22,41 @@ public sealed class EpubBuilderTests
             string.Concat(Enumerable.Repeat("<html>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</html>", 50)));
     }
 
-    [TestCleanup]
-    public void Cleanup()
+    public void Dispose()
     {
         Directory.Delete(_sourceDir, recursive: true);
         File.Delete(_epubPath);
     }
 
-    [TestMethod]
+    [Fact]
     public void Create_PutsStoredMimetypeFirst()
     {
+        // Act
         EpubBuilder.Create(_sourceDir, _epubPath);
 
+        // Assert
         using var archive = ZipFile.OpenRead(_epubPath);
-        Assert.AreEqual("mimetype", archive.Entries[0].FullName);
-        Assert.AreEqual(archive.Entries[0].Length, archive.Entries[0].CompressedLength);
+        archive.Entries[0].FullName.Should().Be("mimetype");
+        archive.Entries[0].Length.Should().Be(archive.Entries[0].CompressedLength);
 
         using var mimeStream = archive.Entries[0].Open();
         using var reader = new StreamReader(mimeStream);
-        Assert.AreEqual(EpubBuilder.MimeType, reader.ReadToEnd());
+        reader.ReadToEnd().Should().Be(EpubBuilder.MimeType);
     }
 
-    [TestMethod]
+    [Fact]
     public void Create_UsesForwardSlashesAndDeflatesOtherEntries()
     {
+        // Act
         EpubBuilder.Create(_sourceDir, _epubPath);
 
+        // Assert
         using var archive = ZipFile.OpenRead(_epubPath);
         var names = archive.Entries.Select(e => e.FullName).ToList();
         List<string> expected = ["mimetype", "META-INF/container.xml", "OEBPS/text/part1.xhtml"];
-        CollectionAssert.AreEquivalent(expected, names);
+        names.Should().BeEquivalentTo(expected);
 
         var part = archive.GetEntry("OEBPS/text/part1.xhtml")!;
-        Assert.IsGreaterThan(part.CompressedLength, part.Length);
+        part.CompressedLength.Should().BeLessThan(part.Length);
     }
 }

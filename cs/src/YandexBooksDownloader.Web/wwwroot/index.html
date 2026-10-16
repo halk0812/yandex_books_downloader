@@ -48,9 +48,14 @@
     a.download {
       display: inline-block;
       margin-top: .5rem;
+      margin-right: .75rem;
       font-size: 1.05rem;
     }
     .hint { font-size: .85rem; opacity: .7; }
+    .checks { margin-top: .75rem; gap: 1.25rem; }
+    .checks label { display: inline-flex; align-items: center; gap: .35rem; font-size: .95rem; cursor: pointer; }
+    .checks input { width: 1rem; height: 1rem; accent-color: #1681cc; }
+    .checks label.disabled { opacity: .5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -69,8 +74,13 @@
   <div class="card">
     <div class="row">
       <input id="bookid" type="text" placeholder="bookid (из URL книги)" autocomplete="off">
-      <button id="downloadBtn">Скачать epub</button>
+      <button id="downloadBtn">Скачать</button>
     </div>
+    <div class="row checks">
+      <label id="mobiLabel"><input id="mobiChk" type="checkbox"> Конвертировать в MOBI</label>
+      <label id="pdfLabel"><input id="pdfChk" type="checkbox"> Конвертировать в PDF</label>
+    </div>
+    <p id="calibreHint" class="hint" hidden>Для конвертации в MOBI/PDF нужен установленный <a href="https://calibre-ebook.com/">Calibre</a> (утилита <code>ebook-convert</code>).</p>
     <p id="status"></p>
     <div id="result"></div>
   </div>
@@ -83,6 +93,11 @@
     const logoutBtn = document.getElementById('logoutBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const bookidInput = document.getElementById('bookid');
+    const mobiChk = document.getElementById('mobiChk');
+    const pdfChk = document.getElementById('pdfChk');
+    const mobiLabel = document.getElementById('mobiLabel');
+    const pdfLabel = document.getElementById('pdfLabel');
+    const calibreHint = document.getElementById('calibreHint');
 
     function setStatus(text, isError) {
       statusEl.textContent = text;
@@ -103,6 +118,21 @@
         throw new Error(data.error || ('HTTP ' + res.status));
       }
       return data;
+    }
+
+    async function refreshCapabilities() {
+      try {
+        const data = await api('/api/capabilities');
+        if (!data.calibre) {
+          mobiChk.disabled = true;
+          pdfChk.disabled = true;
+          mobiLabel.classList.add('disabled');
+          pdfLabel.classList.add('disabled');
+          calibreHint.hidden = false;
+        }
+      } catch {
+        // не критично: при недоступности эндпоинта чекбоксы остаются активными
+      }
     }
 
     loginBtn.addEventListener('click', async () => {
@@ -133,15 +163,23 @@
       }
       downloadBtn.disabled = true;
       resultEl.innerHTML = '';
-      setStatus('Скачиваю книгу ' + bookId + ' ... это может занять несколько минут.');
+      const converting = mobiChk.checked || pdfChk.checked;
+      setStatus('Скачиваю книгу ' + bookId + ' ...' + (converting ? ' затем конвертация Calibre — это может занять несколько минут.' : ' это может занять несколько минут.'));
       try {
         const data = await api('/api/download', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookId }),
+          body: JSON.stringify({ bookId, mobi: mobiChk.checked, pdf: pdfChk.checked }),
         });
         setStatus('Готово.');
-        resultEl.innerHTML = '<a class="download" href="' + data.epubUrl + '">Скачать epub</a>';
+        let html = '';
+        for (const [format, url] of Object.entries(data.formats || {})) {
+          html += '<a class="download" href="' + url + '">Скачать ' + format.toUpperCase() + '</a>';
+        }
+        if (data.warnings && data.warnings.length) {
+          html += '<p class="hint">' + data.warnings.join(' ') + '</p>';
+        }
+        resultEl.innerHTML = html;
       } catch (e) {
         setStatus(e.message, true);
       } finally {
@@ -150,6 +188,7 @@
     });
 
     refreshSession();
+    refreshCapabilities();
   </script>
 </body>
 </html>

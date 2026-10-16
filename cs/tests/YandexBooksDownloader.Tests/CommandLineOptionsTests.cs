@@ -18,6 +18,8 @@ public class CommandLineOptionsTests
         options.DeleteCss.Should().BeTrue();
         options.MakeEpub.Should().BeTrue();
         options.DeleteDownloaded.Should().BeTrue();
+        options.ConvertMobi.Should().BeFalse();
+        options.ConvertPdf.Should().BeFalse();
     }
 
     [Fact]
@@ -43,6 +45,17 @@ public class CommandLineOptionsTests
         options.DeleteCss.Should().BeFalse();
         options.MakeEpub.Should().BeTrue();
         options.DeleteDownloaded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Parse_SupportsMobiAndPdfFlags()
+    {
+        // Act
+        var options = CommandLineOptions.Parse(["--bookid", "x", "--mobi", "true", "--pdf=true"]);
+
+        // Assert
+        options.ConvertMobi.Should().BeTrue();
+        options.ConvertPdf.Should().BeTrue();
     }
 
     [Fact]

@@ -43,6 +43,16 @@ public sealed record CommandLineOptions
     public bool DeleteDownloaded { get; init; } = true;
 
     /// <summary>
+    /// Признак конвертации epub в mobi.
+    /// </summary>
+    public bool ConvertMobi { get; init; }
+
+    /// <summary>
+    /// Признак конвертации epub в pdf.
+    /// </summary>
+    public bool ConvertPdf { get; init; }
+
+    /// <summary>
     /// Текст справки командной строки.
     /// </summary>
     public static string HelpText { get; } = $"""
@@ -58,6 +68,8 @@ public sealed record CommandLineOptions
           --delete_css <true|false>   empty css files before packing (default: true)
           --make_epub <true|false>    pack downloaded files into an epub (default: true)
           --delete_downloaded <b>     remove the unpacked directory after packing (default: true)
+          --mobi <true|false>         convert the epub to mobi with Calibre (default: false)
+          --pdf <true|false>          convert the epub to pdf with Calibre (default: false)
           -h, --help                  show this help
 
         Cookie: set the SESSION_ID environment variable, or the program will prompt
@@ -85,6 +97,8 @@ public sealed record CommandLineOptions
         bool? deleteCss = null;
         bool? makeEpub = null;
         bool? deleteDownloaded = null;
+        bool? convertMobi = null;
+        bool? convertPdf = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -119,6 +133,14 @@ public sealed record CommandLineOptions
                     deleteDownloaded = TakeBool(args, ref i, name, inlineValue);
                     break;
 
+                case "--mobi":
+                    convertMobi = TakeBool(args, ref i, name, inlineValue);
+                    break;
+
+                case "--pdf":
+                    convertPdf = TakeBool(args, ref i, name, inlineValue);
+                    break;
+
                 default:
                     throw new CommandLineParseException($"Unknown option '{args[i]}'.");
             }
@@ -144,6 +166,8 @@ public sealed record CommandLineOptions
             DeleteCss = deleteCss ?? true,
             MakeEpub = makeEpub ?? true,
             DeleteDownloaded = deleteDownloaded ?? true,
+            ConvertMobi = convertMobi ?? false,
+            ConvertPdf = convertPdf ?? false,
         };
     }
 

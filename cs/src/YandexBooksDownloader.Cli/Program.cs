@@ -97,6 +97,16 @@ public static class Program
                 book.MakeEpub();
             }
 
+            if (options.ConvertMobi)
+            {
+                await ConvertBookAsync(book, "mobi", logger, cts.Token);
+            }
+
+            if (options.ConvertPdf)
+            {
+                await ConvertBookAsync(book, "pdf", logger, cts.Token);
+            }
+
             if (options.DeleteDownloaded)
             {
                 book.DeleteDownloaded();
@@ -113,6 +123,20 @@ public static class Program
         {
             logger.LogError(exception, "fatal error");
             return 1;
+        }
+    }
+
+    private static async Task ConvertBookAsync(BookDownloader book, string format, ILogger logger, CancellationToken cancellationToken)
+    {
+        var targetPath = Path.ChangeExtension(book.EpubPath, "." + format);
+        try
+        {
+            await EbookConverter.ConvertAsync(book.EpubPath, targetPath, cancellationToken);
+            logger.LogInformation("ebook converted to {TargetPath}", targetPath);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or InvalidDataException)
+        {
+            logger.LogError("cannot convert to {Format}: {Message}", format, exception.Message);
         }
     }
 

@@ -21,6 +21,9 @@ app.UseStaticFiles();
 app.MapGet("/api/session", (SessionStore session) =>
     Results.Ok(new { loggedIn = session.Cookie is not null }));
 
+app.MapGet("/api/capabilities", () =>
+    Results.Ok(new { calibre = EbookConverter.IsConverterAvailable() }));
+
 app.MapPost("/api/login", async (YandexLoginService login, CancellationToken ct) =>
 {
     try
@@ -42,16 +45,25 @@ app.MapPost("/api/logout", (SessionStore session) =>
 
 app.MapPost("/api/download", async (BookDownloadService downloads, DownloadRequest request, CancellationToken ct) =>
 {
-    var bookId = request?.BookId;
-    if (string.IsNullOrWhiteSpace(bookId) || !BookDownloadService.IsValidBookId(bookId))
+    if (request is null || string.IsNullOrWhiteSpace(request.BookId) || !BookDownloadService.IsValidBookId(request.BookId))
     {
         return Results.BadRequest(new { error = "bookid is required and may contain only letters, digits, '-' and '_'." });
     }
 
     try
     {
-        var downloadedId = await downloads.DownloadAsync(bookId, ct);
-        return Results.Ok(new { epubUrl = $"/api/epub/{downloadedId}" });
+        var result = await downloads.DownloadAsync(request.BookId, request.Mobi, request.Pdf, ct);
+
+        var formats = new Dictionary<string, string>();
+        foreach (var format in new[] { "epub", "mobi", "pdf" })
+        {
+            if (downloads.FindBookPath(result.BookId, format) is not null)
+            {
+                formats[format] = $"/api/book/{result.BookId}/{format}";
+            }
+        }
+
+        return Results.Ok(new { formats, warnings = result.Warnings });
     }
     catch (InvalidOperationException exception)
     {
@@ -63,12 +75,21 @@ app.MapPost("/api/download", async (BookDownloadService downloads, DownloadReque
     }
 });
 
-app.MapGet("/api/epub/{bookId}", (BookDownloadService downloads, string bookId) =>
+app.MapGet("/api/book/{bookId}/{format}", (BookDownloadService downloads, string bookId, string format) =>
 {
-    var path = downloads.FindEpubPath(bookId);
-    return path is null
-        ? Results.NotFound(new { error = "epub not found, download the book first." })
-        : Results.File(path, "application/epub+zip", $"{bookId}.epub");
+    var path = downloads.FindBookPath(bookId, format);
+    var contentType = FindContentType(format);
+    return path is null || contentType is null
+        ? Results.NotFound(new { error = "file not found, download the book first." })
+        : Results.File(path, contentType, $"{bookId}.{format}");
 });
 
 app.Run();
+
+static string? FindContentType(string format) => format switch
+{
+    "epub" => "application/epub+zip",
+    "mobi" => "application/x-mobipocket-ebook",
+    "pdf" => "application/pdf",
+    _ => null,
+};

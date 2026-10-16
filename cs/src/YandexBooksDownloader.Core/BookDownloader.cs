@@ -47,6 +47,11 @@ public sealed class BookDownloader
     public string? Secret { get; private set; }
 
     /// <summary>
+    /// Путь epub-файла книги, создаваемого при упаковке.
+    /// </summary>
+    public string EpubPath => _downloader.OutDir + ".epub";
+
+    /// <summary>
     /// Скачивает секрет расшифровки.
     /// </summary>
     /// <param name="cancellationToken">Токен отмены.</param>

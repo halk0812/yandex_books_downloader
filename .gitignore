@@ -1,0 +1,8 @@
+# Output books
+out
+
+# .NET
+bin/
+obj/
+*.user
+.vs/

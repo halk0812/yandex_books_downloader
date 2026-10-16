@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/YandexBooksDownloader.Cli/YandexBooksDownloader.Cli.csproj" />
+    <Project Path="src/YandexBooksDownloader.Core/YandexBooksDownloader.Core.csproj" />
+    <Project Path="src/YandexBooksDownloader.Web/YandexBooksDownloader.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/YandexBooksDownloader.Tests/YandexBooksDownloader.Tests.csproj" />
+  </Folder>
+</Solution>

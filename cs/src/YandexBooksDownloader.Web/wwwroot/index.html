@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yandex Books Downloader</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      max-width: 640px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 { font-size: 1.4rem; }
+    .card {
+      border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    input[type=text] {
+      flex: 1 1 12rem;
+      padding: .5rem .75rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+      background: transparent;
+      color: inherit;
+      font-size: 1rem;
+    }
+    button {
+      padding: .5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+      background: #1681cc;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button.secondary { background: transparent; color: inherit; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .badge { font-size: .85rem; padding: .2rem .6rem; border-radius: 999px; }
+    .badge.on { background: #1d7d3f; color: #fff; }
+    .badge.off { background: #7d1d1d; color: #fff; }
+    #status { min-height: 1.4em; font-size: .95rem; }
+    #status.error { color: #d33; }
+    a.download {
+      display: inline-block;
+      margin-top: .5rem;
+      font-size: 1.05rem;
+    }
+    .hint { font-size: .85rem; opacity: .7; }
+  </style>
+</head>
+<body>
+  <h1>Yandex Books Downloader</h1>
+
+  <div class="card">
+    <div class="row">
+      <strong>Сессия Яндекса:</strong>
+      <span id="sessionBadge" class="badge off">не авторизован</span>
+      <button id="loginBtn">Войти через браузер</button>
+      <button id="logoutBtn" class="secondary">Выйти</button>
+    </div>
+    <p class="hint">Откроется окно браузера — войдите в books.yandex.ru, cookie <code>Session_id</code> будет перехвачен автоматически.</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <input id="bookid" type="text" placeholder="bookid (из URL книги)" autocomplete="off">
+      <button id="downloadBtn">Скачать epub</button>
+    </div>
+    <p id="status"></p>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const badge = document.getElementById('sessionBadge');
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const bookidInput = document.getElementById('bookid');
+
+    function setStatus(text, isError) {
+      statusEl.textContent = text;
+      statusEl.className = isError ? 'error' : '';
+    }
+
+    async function refreshSession() {
+      const res = await fetch('/api/session');
+      const data = await res.json();
+      badge.textContent = data.loggedIn ? 'авторизован' : 'не авторизован';
+      badge.className = 'badge ' + (data.loggedIn ? 'on' : 'off');
+    }
+
+    async function api(path, options) {
+      const res = await fetch(path, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      return data;
+    }
+
+    loginBtn.addEventListener('click', async () => {
+      loginBtn.disabled = true;
+      setStatus('Откройте окно браузера и войдите в Яндекс...');
+      try {
+        await api('/api/login', { method: 'POST' });
+        setStatus('Вход выполнен, cookie получен.');
+        await refreshSession();
+      } catch (e) {
+        setStatus(e.message, true);
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await api('/api/logout', { method: 'POST' });
+      setStatus('Выход выполнен.');
+      await refreshSession();
+    });
+
+    downloadBtn.addEventListener('click', async () => {
+      const bookId = bookidInput.value.trim();
+      if (!bookId) {
+        setStatus('Укажите bookid книги.', true);
+        return;
+      }
+      downloadBtn.disabled = true;
+      resultEl.innerHTML = '';
+      setStatus('Скачиваю книгу ' + bookId + ' ... это может занять несколько минут.');
+      try {
+        const data = await api('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookId }),
+        });
+        setStatus('Готово.');
+        resultEl.innerHTML = '<a class="download" href="' + data.epubUrl + '">Скачать epub</a>';
+      } catch (e) {
+        setStatus(e.message, true);
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    });
+
+    refreshSession();
+  </script>
+</body>
+</html>
